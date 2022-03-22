@@ -2,6 +2,7 @@ const express = require('express') //express
 const morgan = require('morgan') //logger
 const mongoose = require ('mongoose') //db
 const Blog = require('./models/blog')
+const { render } = require('ejs')
 
 const app = express()
 
@@ -27,12 +28,15 @@ const blogs = [{ title: 'something1', snippet: 'If the Auto Attach feature is en
     ]
 
 //middleware & static files
-app.use(express.static('public'))
-app.use(morgan('dev'));
+app.use(express.static('public')) //handling the public folder for styles
+app.use(express.urlencoded({extended:true})) //handling post requests from the form (Accepting from data)
+app.use(morgan('dev')); //logger/ debugger
 
-app.get('/add-blog',(req,res)=>{
+//API routes
+
+app.get('/api/add-blog',(req,res)=>{
     const blog = new Blog({
-        title:'newest blog',
+        title:'newest blog3',
         snippet:'about the newest',
         body:'content of the newest',
     });
@@ -43,9 +47,41 @@ app.get('/add-blog',(req,res)=>{
     })
 })
 
+
+app.get('/api/blogs',(req,res)=>{
+    Blog.find().sort({createdAt:-1})
+    .then((result)=>{
+        res.send(result)
+    }).catch((err)=>{
+            console.log(err)
+        })
+    })
+
+
+app.get('/api/blogs/:id',(req,res)=>{
+    const id = req.params.id;
+    Blog.findById(id)
+    .then(result =>{
+        res.send(result)
+    })
+})
+
+app.delete('/api/blogs/:id',(req,res)=>{
+    const id = req.params.id;
+    Blog.findByIdAndRemove(id)
+    .then(result=>{
+        console.log('Delete success')
+        res.redirect('/api/blogs')
+    })
+    .catch((err)=>{console.log(err)})
+})
+    
+//web view routes
+
 app.get('/',(req,res)=>{
     //res.sendFile('./templates/index.html', { root: __dirname });
-    res.render('index',{title:'Home',blogs});
+    //res.render('index',{title:'Home',blogs});
+    res.redirect('/blogs')
 })
 
 app.get('/about', (req, res) => {
@@ -58,9 +94,56 @@ app.get('/about', (req, res) => {
 //     res.status(404).render('404')
 // })
 
+app.get('/blogs',(req,res)=>{
+    Blog.find().sort({ createdAt: -1 })
+    .then((result)=>{
+        res.render('index',{title:'All Blogs', blogs:result})
+    })
+    .catch((err) => {
+        console.log(err)
+    })
+
+})
+
+app.get('/blogs/:id', (req, res) => {
+    const id = req.params.id;
+    Blog.findById(id)
+        .then(result => {
+            res.render('details',{blog:result,title:'Blog Details'})
+        })
+        .catch(err =>{
+            console.log(err)
+        })
+})
+//return instead of redirect because we handle the delete as AJAX instead of a form. see ajax request and server responses
+app.delete('/blogs/:id',(req,res)=>{
+    const id = req.params.id;
+    Blog.findByIdAndDelete(id)
+    .then(result=>{
+        res.json({redirect:'/blogs'})
+    })
+    .catch(err=>{console.log(err)})
+})
+
+app.post('/blogs',(req,res)=>{
+    const blog = new Blog(req.body);
+    blog.save()
+    .then((result)=>{
+        res.redirect('/blogs')
+    })
+    .catch((err)=>{
+        console.log(err)
+    })
+})
+
 app.get('/blogs/create',(req,res)=>{
     res.render('create', { title: 'Create' });
 })
+
+app.get('/api/*',(req,res)=>{
+    res.sendStatus(404).send([]);
+})
+
 app.get('*', (req, res) => {
     //res.redirect('404')
     res.status(404).render('404', { title: 'NotFound' });
