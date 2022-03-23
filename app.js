@@ -36,12 +36,12 @@ app.use(morgan('dev')); //logger/ debugger
 
 app.get('/api/add-blog',(req,res)=>{
     const blog = new Blog({
-        title:'newest blog3',
+        title:'newest blog4',
         snippet:'about the newest',
         body:'content of the newest',
     });
     blog.save().then((result)=>{
-        res.send(result)
+        res.json(result)
     }).catch((err)=>{
         console.log(err)
     })
@@ -51,7 +51,7 @@ app.get('/api/add-blog',(req,res)=>{
 app.get('/api/blogs',(req,res)=>{
     Blog.find().sort({createdAt:-1})
     .then((result)=>{
-        res.send(result)
+        res.json(result)
     }).catch((err)=>{
             console.log(err)
         })
@@ -62,14 +62,14 @@ app.get('/api/blogs/:id',(req,res)=>{
     const id = req.params.id;
     Blog.findById(id)
     .then(result =>{
-        res.send(result)
+        res.json(result)
     })
 })
 
 app.delete('/api/blogs/:id',(req,res)=>{
     const id = req.params.id;
     Blog.findByIdAndRemove(id)
-    .then(result=>{
+    .then(()=>{
         console.log('Delete success')
         res.redirect('/api/blogs')
     })
